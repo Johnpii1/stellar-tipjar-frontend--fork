@@ -1,6 +1,11 @@
+"use client";
+
 import { WalletConnector } from "@/components/WalletConnector";
+import { useRateLimit } from "@/hooks/useRateLimit";
 
 export default function TipsPage() {
+  const { remaining, limit, isLimited, countdownLabel } = useRateLimit();
+
   return (
     <section className="space-y-6">
       <div>
@@ -19,6 +24,17 @@ export default function TipsPage() {
         </p>
         <div className="mt-4">
           <WalletConnector />
+        </div>
+
+        <div className="mt-4 rounded-xl border border-ink/10 bg-ink/[0.02] p-4 text-sm text-ink/75">
+          <p>
+            API usage: {limit - remaining}/{limit} requests in the current minute.
+          </p>
+          <p className={isLimited ? "mt-1 text-red-600" : "mt-1 text-emerald-700"}>
+            {isLimited
+              ? `Rate limit reached. Try again in ${countdownLabel}.`
+              : "Requests are currently within limits."}
+          </p>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
