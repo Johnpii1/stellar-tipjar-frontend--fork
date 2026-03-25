@@ -1,11 +1,22 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { Button } from "@/components/Button";
 import { SectionCard } from "@/components/SectionCard";
+import { buildMetadata, websiteJsonLd } from "@/utils/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Stellar Tip Jar",
+  description: "Support creators globally with low-fee Stellar tips.",
+});
 
 export default function Home() {
   return (
     <div className="space-y-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+      />
       <section className="soft-grid overflow-hidden rounded-3xl border border-ink/10 bg-[color:var(--surface)] p-8 shadow-card sm:p-12">
         <span className="inline-flex rounded-full bg-wave/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-wave">
           Open Source + Stellar

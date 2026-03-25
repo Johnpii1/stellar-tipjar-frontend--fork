@@ -43,7 +43,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const watcher = new WatchWalletChanges();
     watcher.watch((data) => {
       // In @stellar/freighter-api 6.0, data contains { address, network, ... }
-      const newAddress = (data as any).address;
+      const newAddress =
+        typeof data === "object" && data !== null && "address" in data
+          ? (data as { address?: string }).address
+          : undefined;
       if (newAddress && newAddress !== publicKey) {
         setPublicKey(newAddress);
       } else if (!newAddress && publicKey) {
@@ -81,10 +84,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (pk) {
         setPublicKey(pk);
       }
-    } catch (err: any) {
-      if (err.message === "FREIGHTER_NOT_INSTALLED") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "FREIGHTER_NOT_INSTALLED") {
         setError("Freighter wallet extension is not installed.");
-      } else if (err.message === "USER_DECLINED") {
+      } else if (err instanceof Error && err.message === "USER_DECLINED") {
         setError("You declined the connection request.");
       } else {
         setError("Failed to connect Freighter.");

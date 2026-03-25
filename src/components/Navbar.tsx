@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { NotificationBadge } from "@/components/NotificationBadge";
 import { WalletConnector } from "@/components/WalletConnector";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -11,22 +13,38 @@ const navLinks = [
 export function Navbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-ink/10 bg-[color:var(--surface)]/80 backdrop-blur-md">
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="text-lg font-bold tracking-tight text-ink sm:text-xl">
+      <nav
+        aria-label="Main navigation"
+        className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
+      >
+        <Link
+          href="/"
+          aria-label="Stellar Tip Jar — home"
+          className="text-lg font-bold tracking-tight text-ink sm:text-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wave/50 rounded"
+        >
           Stellar Tip Jar
         </Link>
-        <div className="hidden items-center gap-6 text-sm font-medium text-ink/80 md:flex">
+
+        <ul
+          role="list"
+          className="hidden items-center gap-6 text-sm font-medium text-ink/80 md:flex"
+        >
           {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="transition-colors hover:text-wave"
-            >
-              {link.label}
-            </Link>
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="transition-colors hover:text-wave focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wave/50 rounded"
+              >
+                {link.label}
+              </Link>
+            </li>
           ))}
+        </ul>
+
+        <div className="flex items-center gap-2">
+          <NotificationBadge />
+          <WalletConnector />
         </div>
-        <WalletConnector />
       </nav>
     </header>
   );
