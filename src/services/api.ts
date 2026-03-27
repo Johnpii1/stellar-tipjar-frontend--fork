@@ -9,7 +9,10 @@ export interface CreatorProfile {
   displayName: string;
   bio: string;
   preferredAsset: string;
+  categories: string[];
+  tags: string[];
 }
+
 
 export interface ApiRateLimitStatus {
   isLimited: boolean;
@@ -244,14 +247,81 @@ export async function getCreatorProfile(username: string): Promise<CreatorProfil
     });
   } catch {
     // Fallback makes local UI work before backend endpoints are available.
-    return {
+    const mockProfiles: Record<string, CreatorProfile> = {
+      'alice': {
+        username: 'alice',
+        displayName: 'Alice the Artist',
+        bio: 'Digital artist creating NFT masterpieces on Stellar.',
+        preferredAsset: 'XLM',
+        categories: ['art'],
+        tags: ['nft-art', 'digital-art', 'generative-art'],
+      },
+      'stellar-dev': {
+        username: 'stellar-dev',
+        displayName: 'Stellar Dev',
+        bio: 'Building the future of payments on Stellar.',
+        preferredAsset: 'XLM',
+        categories: ['tech'],
+        tags: ['soroban', 'smart-contracts', 'stellar'],
+      },
+      // ... more
+    };
+    return mockProfiles[username] || {
       username,
       displayName: `@${username}`,
       bio: "Creator bio will be loaded from the backend API.",
       preferredAsset: "XLM",
+      categories: [],
+      tags: [],
     };
   }
 }
+
+export async function getCategories(): Promise<string[]> {
+  try {
+    return await request<string[]>('/categories');
+  } catch {
+    return ['art', 'tech', 'community', 'education', 'music', 'gaming', 'crypto', 'nft', 'defi', 'dao'];
+  }
+}
+
+export async function getTagCloud(): Promise<TagWithCount[]> {
+  const mockTags = [
+    { tag: 'web3', count: 45 },
+    { tag: 'nft', count: 38 },
+    { tag: 'defi', count: 32 },
+    { tag: 'solidity', count: 28 },
+    { tag: 'stellar', count: 25 },
+    { tag: 'soroban', count: 22 },
+    { tag: 'digital-art', count: 20 },
+    { tag: 'dao', count: 18 },
+    { tag: 'rust', count: 16 },
+    { tag: 'typescript', count: 15 },
+  ];
+  try {
+    return await request<TagWithCount[]>('/tags/cloud');
+  } catch {
+    return mockTags;
+  }
+}
+
+export async function searchCreatorsByTag(query: string): Promise<CreatorProfile[]> {
+  try {
+    return await request<CreatorProfile[]>(`/creators/search/tag?q=${encodeURIComponent(query)}`);
+  } catch {
+    // Mock filter
+    const allCreators: CreatorProfile[] = [
+      ...Object.values(mockProfiles),
+      { username: 'pixelmaker', displayName: 'Pixel Maker', bio: 'Pixel art creator', preferredAsset: 'XLM', categories: ['art'], tags: ['pixel-art', 'nft'] },
+      // add more from explore mocks
+    ];
+    return allCreators.filter(c => c.tags.some(t => t.includes(query.toLowerCase())));
+  }
+}
+
+export interface CreatorWithCategoriesTags extends CreatorProfile {} // for type consistency
+
+// ─── Categories & Tags ──────────────────────────────────────────────────────
 
 export async function createTipIntent(payload: {
   username: string;

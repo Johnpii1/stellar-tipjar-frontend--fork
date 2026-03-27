@@ -14,6 +14,9 @@ import { formatUsername } from "@/utils/format";
 import { generateAvatarUrl } from "@/utils/imageUtils";
 import { buildMetadata, creatorProfileJsonLd } from "@/utils/seo";
 import { OptimizedImage } from "@/components/OptimizedImage";
+import { TagBadge } from "@/components/TagBadge";
+import { TagCloud } from "@/components/TagCloud";
+import { generateTagCloud } from "@/utils/categories";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
 
 interface CreatorPageProps {
@@ -55,6 +58,8 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
               username: profile.username,
               displayName: profile.displayName,
               bio: profile.bio,
+              categories: profile.categories,
+              tags: profile.tags,
             })
           ),
         }}
@@ -76,6 +81,26 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
         <p className="mt-4 inline-flex rounded-lg bg-wave/10 px-3 py-1 text-sm text-wave">
           Preferred asset: {profile.preferredAsset}
         </p>
+
+        {(profile.categories?.length || profile.tags?.length) > 0 && (
+          <div className="mt-6">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-wave">Categories & Tags</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {profile.categories?.map((cat) => (
+                <TagBadge key={cat} tag={cat} variant="category" />
+              ))}
+              {profile.tags?.slice(0, 6).map((tag) => (
+                <TagBadge key={tag} tag={tag} />
+              ))}
+              {profile.tags && profile.tags.length > 6 && (
+                <span className="px-3 py-1 text-xs font-medium text-ink/60 bg-ink/10 rounded-full">
+                  +{profile.tags.length - 6} more
+                </span>
+              )}
+            </div>
+            <TagCloud tags={generateTagCloud(profile.tags || [])} className="max-w-lg" />
+          </div>
+        )}
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/tips">

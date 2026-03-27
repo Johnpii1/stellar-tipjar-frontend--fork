@@ -14,40 +14,44 @@ import { RecommendedCreators } from "@/components/RecommendedCreators";
 import { Leaderboards } from "@/components/Leaderboards/Leaderboards";
 import { useRecommendations } from "@/hooks/useRecommendations";
 
+import { CATEGORIES, TagWithCount } from "@/utils/categories";
+import { CategoryFilter } from "@/components/CategoryFilter";
+import { TagCloud } from "@/components/TagCloud";
 
 interface Creator {
   username: string;
   displayName?: string;
-  category?: string;
+  categories: string[];
+  tags: string[];
   followers?: number;
 }
 
 const creatorExamples: Creator[] = [
-  { username: "alice", displayName: "Alice", category: "art", followers: 1250 },
-  { username: "stellar-dev", displayName: "Stellar Dev", category: "tech", followers: 3400 },
-  { username: "pixelmaker", displayName: "Pixel Maker", category: "art", followers: 890 },
-  { username: "community-lab", displayName: "Community Lab", category: "community", followers: 2100 },
-  { username: "crypto-artist", displayName: "Crypto Artist", category: "art", followers: 1800 },
-  { username: "blockchain-edu", displayName: "Blockchain Edu", category: "education", followers: 2900 },
-  { username: "nft-creator", displayName: "NFT Creator", category: "art", followers: 4200 },
-  { username: "defi-expert", displayName: "DeFi Expert", category: "tech", followers: 3100 },
-  { username: "web3-builder", displayName: "Web3 Builder", category: "tech", followers: 2700 },
-  { username: "dao-organizer", displayName: "DAO Organizer", category: "community", followers: 1950 },
-  { username: "smart-contract-dev", displayName: "Smart Contract Dev", category: "tech", followers: 3800 },
-  { username: "digital-artist", displayName: "Digital Artist", category: "art", followers: 2300 },
-  { username: "crypto-educator", displayName: "Crypto Educator", category: "education", followers: 3500 },
-  { username: "metaverse-architect", displayName: "Metaverse Architect", category: "tech", followers: 2800 },
-  { username: "token-designer", displayName: "Token Designer", category: "art", followers: 1600 },
-  { username: "blockchain-analyst", displayName: "Blockchain Analyst", category: "education", followers: 2400 },
-  { username: "community-manager", displayName: "Community Manager", category: "community", followers: 1750 },
-  { username: "protocol-dev", displayName: "Protocol Dev", category: "tech", followers: 4100 },
-  { username: "3d-artist", displayName: "3D Artist", category: "art", followers: 2200 },
-  { username: "crypto-writer", displayName: "Crypto Writer", category: "education", followers: 1900 },
-  { username: "gamefi-dev", displayName: "GameFi Dev", category: "tech", followers: 3300 },
-  { username: "generative-artist", displayName: "Generative Artist", category: "art", followers: 2600 },
-  { username: "web3-educator", displayName: "Web3 Educator", category: "education", followers: 2100 },
-  { username: "nft-collector", displayName: "NFT Collector", category: "community", followers: 1400 },
-  { username: "solidity-dev", displayName: "Solidity Dev", category: "tech", followers: 3900 },
+  { username: "alice", displayName: "Alice", categories: ["art"], tags: ["nft-art", "digital-art"], followers: 1250 },
+  { username: "stellar-dev", displayName: "Stellar Dev", categories: ["tech"], tags: ["soroban", "stellar"], followers: 3400 },
+  { username: "pixelmaker", displayName: "Pixel Maker", categories: ["art"], tags: ["pixel-art"], followers: 890 },
+  { username: "community-lab", displayName: "Community Lab", categories: ["community"], tags: ["dao"], followers: 2100 },
+  { username: "crypto-artist", displayName: "Crypto Artist", categories: ["art"], tags: ["crypto-art"], followers: 1800 },
+  { username: "blockchain-edu", displayName: "Blockchain Edu", categories: ["education"], tags: ["blockchain"], followers: 2900 },
+  { username: "nft-creator", displayName: "NFT Creator", categories: ["art"], tags: ["nft"], followers: 4200 },
+  { username: "defi-expert", displayName: "DeFi Expert", categories: ["tech"], tags: ["defi"], followers: 3100 },
+  { username: "web3-builder", displayName: "Web3 Builder", categories: ["tech"], tags: ["web3"], followers: 2700 },
+  { username: "dao-organizer", displayName: "DAO Organizer", categories: ["community"], tags: ["dao-governance"], followers: 1950 },
+  { username: "smart-contract-dev", displayName: "Smart Contract Dev", categories: ["tech"], tags: ["solidity"], followers: 3800 },
+  { username: "digital-artist", displayName: "Digital Artist", categories: ["art"], tags: ["digital-art"], followers: 2300 },
+  { username: "crypto-educator", displayName: "Crypto Educator", categories: ["education"], tags: ["crypto"], followers: 3500 },
+  { username: "metaverse-architect", displayName: "Metaverse Architect", categories: ["tech"], tags: ["metaverse"], followers: 2800 },
+  { username: "token-designer", displayName: "Token Designer", categories: ["art"], tags: ["tokenomics"], followers: 1600 },
+  { username: "blockchain-analyst", displayName: "Blockchain Analyst", categories: ["education"], tags: ["blockchain"], followers: 2400 },
+  { username: "community-manager", displayName: "Community Manager", categories: ["community"], tags: ["community"], followers: 1750 },
+  { username: "protocol-dev", displayName: "Protocol Dev", categories: ["tech"], tags: ["protocol"], followers: 4100 },
+  { username: "3d-artist", displayName: "3D Artist", categories: ["art"], tags: ["3d"], followers: 2200 },
+  { username: "crypto-writer", displayName: "Crypto Writer", categories: ["education"], tags: ["crypto"], followers: 1900 },
+  { username: "gamefi-dev", displayName: "GameFi Dev", categories: ["tech"], tags: ["gamefi"], followers: 3300 },
+  { username: "generative-artist", displayName: "Generative Artist", categories: ["art"], tags: ["generative-art"], followers: 2600 },
+  { username: "web3-educator", displayName: "Web3 Educator", categories: ["education"], tags: ["web3"], followers: 2100 },
+  { username: "nft-collector", displayName: "NFT Collector", categories: ["community"], tags: ["nft"], followers: 1400 },
+  { username: "solidity-dev", displayName: "Solidity Dev", categories: ["tech"], tags: ["solidity"], followers: 3900 },
 ];
 
 const categoryOptions: FilterOption[] = [
@@ -69,13 +73,16 @@ export default function ExplorePage() {
   const { trackInteraction } = useRecommendations(0);
   
   const [search, setSearch] = useState(getSearchParam("search") || "");
-  const [category, setCategory] = useState(getSearchParam("category") || "all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sort, setSort] = useState(getSearchParam("sort") || "popular");
   const [page, setPage] = useState(Number(getSearchParam("page")) || 1);
   const [pageSize, setPageSize] = useState(Number(getSearchParam("pageSize")) || 10);
   const [isLoading, setIsLoading] = useState(false);
   
   const debouncedSearch = useDebounce(search, 300);
+
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagCloud, setTagCloud] = useState<TagWithCount[]>([]);
 
   const [filteredCreators, setFilteredCreators] = useState<Creator[]>(creatorExamples);
   
@@ -91,28 +98,49 @@ export default function ExplorePage() {
   );
 
   useEffect(() => {
+    // Load tag cloud
+    const mockCloud: TagWithCount[] = [
+      { tag: 'web3', count: 45 },
+      { tag: 'nft', count: 38 },
+      { tag: 'defi', count: 32 },
+      { tag: 'solidity', count: 28 },
+      { tag: 'stellar', count: 25 },
+    ];
+    setTagCloud(mockCloud);
+  }, []);
+
+  useEffect(() => {
     setIsLoading(true);
     
-    // Simulate API call delay
     const timer = setTimeout(() => {
       let results = [...creatorExamples];
 
-      // Filter by search
+      // Filter by search (name or tags)
       if (debouncedSearch) {
         const searchLower = debouncedSearch.toLowerCase();
         results = results.filter(
           (creator) =>
             creator.username.toLowerCase().includes(searchLower) ||
-            creator.displayName?.toLowerCase().includes(searchLower)
+            creator.displayName?.toLowerCase().includes(searchLower) ||
+            creator.tags.some(tag => tag.includes(searchLower))
         );
       }
 
-      // Filter by category
-      if (category !== "all") {
-        results = results.filter((creator) => creator.category === category);
+      // Filter by categories (any match)
+      if (selectedCategories.length > 0) {
+        results = results.filter(creator =>
+          selectedCategories.some(cat => creator.categories.includes(cat))
+        );
       }
 
-      // Sort results
+      // Filter by tags (any match)
+      if (selectedTags.length > 0) {
+        results = results.filter(creator =>
+          selectedTags.some(tag => creator.tags.includes(tag))
+        );
+      }
+
+      // Sort
       if (sort === "popular") {
         results.sort((a, b) => (b.followers || 0) - (a.followers || 0));
       } else if (sort === "name") {
@@ -122,10 +150,10 @@ export default function ExplorePage() {
       setFilteredCreators(results);
       setPage(1);
       setIsLoading(false);
-    }, 100);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [debouncedSearch, category, sort]);
+  }, [debouncedSearch, selectedCategories, selectedTags, sort]);
 
   useEffect(() => {
     setSearchParams({
@@ -145,7 +173,8 @@ export default function ExplorePage() {
 
   const handleClearFilters = () => {
     setSearch("");
-    setCategory("all");
+    setSelectedCategories([]);
+    setSelectedTags([]);
     setSort("popular");
     setPage(1);
   };
@@ -160,7 +189,7 @@ export default function ExplorePage() {
     setPage(1);
   };
 
-  const hasActiveFilters = search || category !== "all" || sort !== "popular";
+  const hasActiveFilters = search || selectedCategories.length > 0 || selectedTags.length > 0 || sort !== "popular";
 
   return (
     <section className="space-y-6">
@@ -185,14 +214,11 @@ export default function ExplorePage() {
 
 
         <div className="flex flex-wrap items-center gap-3">
-          <FilterDropdown
-            label="Category"
-            options={categoryOptions}
-            value={category}
-            onChange={setCategory}
-            className="w-full sm:w-auto sm:min-w-[200px]"
+          <CategoryFilter
+            selectedCategories={selectedCategories}
+            onChange={setSelectedCategories}
+            className="w-full sm:w-auto sm:min-w-[220px]"
           />
-
           <FilterDropdown
             label="Sort by"
             options={sortOptions}
@@ -200,7 +226,14 @@ export default function ExplorePage() {
             onChange={setSort}
             className="w-full sm:w-auto sm:min-w-[200px]"
           />
-
+          <TagCloud 
+            tags={tagCloud}
+            onTagClick={(tag) => {
+              setSelectedTags(prev => 
+                prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+              );
+            }}
+          />
           {hasActiveFilters && (
             <button
               type="button"
@@ -211,6 +244,15 @@ export default function ExplorePage() {
             </button>
           )}
         </div>
+        <TagCloud 
+          tags={tagCloud}
+          onTagClick={(tag) => {
+            setSelectedTags(prev => 
+              prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+            );
+          }}
+          className="pt-4"
+        />
       </div>
 
       <div className="flex items-center justify-between border-t border-ink/10 pt-4">
@@ -237,7 +279,7 @@ export default function ExplorePage() {
             <li key={creator.username}>
               <Link
                 href={`/creator/${creator.username}`}
-                onClick={() => trackInteraction("click", creator.username, creator.category)}
+                onClick={() => trackInteraction("click", creator.username, creator.categories[0])}
                 className="block rounded-2xl border border-ink/10 bg-[color:var(--surface)] p-5 transition hover:border-wave/40 hover:shadow-card"
               >
                 <div className="flex items-start gap-4">
@@ -251,7 +293,7 @@ export default function ExplorePage() {
                   </div>
                   <div className="flex-1">
                     <p className="text-xs uppercase tracking-wide text-wave">
-                      {creator.category || "Creator"}
+                      {creator.categories[0] || "Creator"}
                     </p>
                     <p className="mt-1 text-lg font-semibold text-ink line-clamp-1">
                       {creator.displayName || `@${creator.username}`}
