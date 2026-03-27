@@ -437,3 +437,85 @@ export async function reportComment(commentId: string): Promise<void> {
     // best-effort
   }
 }
+
+// ─── Calendar Events ──────────────────────────────────────────────────────────
+
+export type EventType = "stream" | "ama" | "workshop" | "release" | "other";
+export type RecurrenceRule = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
+
+export interface CreatorEvent {
+  id: string;
+  creatorUsername: string;
+  title: string;
+  description: string;
+  type: EventType;
+  startIso: string;
+  endIso: string;
+  timezone: string;
+  location?: string;
+  url?: string;
+  recurrence: RecurrenceRule;
+  recurrenceCount?: number;
+}
+
+function mockEvents(creatorUsername: string): CreatorEvent[] {
+  const base = Date.now();
+  return [
+    {
+      id: "ev1",
+      creatorUsername,
+      title: "Live Coding Stream",
+      description: "Building a Stellar payment integration live.",
+      type: "stream",
+      startIso: new Date(base + 2 * 86_400_000).toISOString(),
+      endIso: new Date(base + 2 * 86_400_000 + 2 * 3_600_000).toISOString(),
+      timezone: "UTC",
+      url: "https://twitch.tv/example",
+      recurrence: "NONE",
+    },
+    {
+      id: "ev2",
+      creatorUsername,
+      title: "Weekly AMA",
+      description: "Ask me anything about Web3 and Stellar.",
+      type: "ama",
+      startIso: new Date(base + 7 * 86_400_000).toISOString(),
+      endIso: new Date(base + 7 * 86_400_000 + 3_600_000).toISOString(),
+      timezone: "UTC",
+      recurrence: "WEEKLY",
+      recurrenceCount: 8,
+    },
+  ];
+}
+
+export async function getCreatorEvents(creatorUsername: string): Promise<CreatorEvent[]> {
+  try {
+    return await request<CreatorEvent[]>(`/creators/${creatorUsername}/events`, undefined, {
+      critical: false,
+    });
+  } catch {
+    return mockEvents(creatorUsername);
+  }
+}
+
+export async function createCreatorEvent(
+  payload: Omit<CreatorEvent, "id">,
+): Promise<CreatorEvent> {
+  try {
+    return await request<CreatorEvent>(
+      `/creators/${payload.creatorUsername}/events`,
+      { method: "POST", body: JSON.stringify(payload) },
+      { critical: true, throttleMs: 500 },
+    );
+  } catch {
+    return { ...payload, id: `ev-${Date.now()}` };
+  }
+}
+
+export async function deleteCreatorEvent(eventId: string): Promise<void> {
+  try {
+    await request(`/events/${eventId}`, { method: "DELETE" }, { critical: false });
+  } catch {
+    // best-effort
+  }
+}

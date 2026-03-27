@@ -8,6 +8,7 @@ import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 import { ReactQueryProvider } from "@/components/ReactQueryProvider";
 import { SkipToContent } from "@/components/SkipToContent";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import "@/styles/globals.css";
 import { buildMetadata } from "@/utils/seo";
@@ -49,6 +50,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <SkipToContent />
         <PerformanceMonitor />
+        <CurrencyProvider>
         <WalletProvider>
           <ReactQueryProvider>
           <div className="min-h-screen">
@@ -64,6 +66,7 @@ export default function RootLayout({
           <InstallPrompt />
           </ReactQueryProvider>
         </WalletProvider>
+        </CurrencyProvider>
       </body>
     </html>
   );
