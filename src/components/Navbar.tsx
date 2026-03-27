@@ -3,6 +3,7 @@ import Link from "next/link";
 import { NotificationBadge } from "@/components/NotificationBadge";
 import { WalletConnector } from "@/components/WalletConnector";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -43,6 +44,9 @@ export function Navbar() {
         </ul>
 
         <div className="flex items-center gap-2">
+          <div className="hidden lg:block mr-2">
+            <CurrencySwitcher />
+          </div>
           <NotificationBadge />
           <WalletConnector />
         </div>
