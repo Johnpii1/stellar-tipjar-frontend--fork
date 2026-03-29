@@ -115,6 +115,8 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
         <CreatorStatsDashboard username={profile.username} />
       </div>
 
+      <TipTiers />
+
       <TipComments creatorUsername={profile.username} />
 
       <EventCalendar creatorUsername={profile.username} />
