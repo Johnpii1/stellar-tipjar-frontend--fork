@@ -164,9 +164,27 @@ export class StateExporter {
     try {
       const val = entry.val?.contractData()?.val();
       if (!val) return [];
-      // Parse ScVal map/vec into Creator[]
-      return [];
-    } catch {
+
+      // ScVal vec of maps — each map entry corresponds to a Creator struct.
+      // TODO(contracts-integration): The exact field names ("address",
+      // "username", "display_name", "total_received", "created_at") must
+      // match the Soroban contract's storage schema in stellar-tipjar-contracts.
+      // Update the symbol keys below once the contract ABI is confirmed.
+      const vec = val.vec?.();
+      if (!vec) return [];
+
+      return vec.map((item: StellarSdk.xdr.ScVal) => {
+        const map = this.scValToMap(item);
+        return {
+          address: map["address"] ?? "",
+          username: map["username"] ?? "",
+          displayName: map["display_name"] ?? "",
+          totalReceived: map["total_received"] ?? "0",
+          createdAt: parseInt(map["created_at"] ?? "0", 10),
+        } satisfies Creator;
+      });
+    } catch (err) {
+      console.warn("Failed to parse creators from ledger entry:", err);
       return [];
     }
   }
@@ -176,8 +194,27 @@ export class StateExporter {
     try {
       const val = entry.val?.contractData()?.val();
       if (!val) return [];
-      return [];
-    } catch {
+
+      // TODO(contracts-integration): Field names must match the Tip struct
+      // in stellar-tipjar-contracts. Confirm "tx_hash" vs "txHash" etc.
+      const vec = val.vec?.();
+      if (!vec) return [];
+
+      return vec.map((item: StellarSdk.xdr.ScVal) => {
+        const map = this.scValToMap(item);
+        return {
+          id: map["id"] ?? "",
+          sender: map["sender"] ?? "",
+          recipient: map["recipient"] ?? "",
+          amount: map["amount"] ?? "0",
+          asset: map["asset"] ?? "XLM",
+          message: map["message"] ?? "",
+          timestamp: parseInt(map["timestamp"] ?? "0", 10),
+          txHash: map["tx_hash"] ?? "",
+        } satisfies Tip;
+      });
+    } catch (err) {
+      console.warn("Failed to parse tips from ledger entry:", err);
       return [];
     }
   }
@@ -187,9 +224,83 @@ export class StateExporter {
     try {
       const val = entry.val?.contractData()?.val();
       if (!val) return {};
+
+      // TODO(contracts-integration): Balances may be stored as a Map<Address, i128>
+      // or as individual per-address ledger keys. Confirm storage layout in
+      // stellar-tipjar-contracts before relying on this output.
+      const map = val.map?.();
+      if (!map) return {};
+
+      const result: Record<string, string> = {};
+      for (const entry of map) {
+        const key = this.scValToString(entry.key());
+        const value = this.scValToString(entry.val());
+        if (key) result[key] = value;
+      }
+      return result;
+    } catch (err) {
+      console.warn("Failed to parse balances from ledger entry:", err);
       return {};
+    }
+  }
+
+  /**
+   * Convert a ScVal map into a plain string Record.
+   * Handles scvMap with symbol or string keys.
+   */
+  private scValToMap(val: StellarSdk.xdr.ScVal): Record<string, string> {
+    const result: Record<string, string> = {};
+    try {
+      const map = val.map?.();
+      if (!map) return result;
+      for (const entry of map) {
+        const key = this.scValToString(entry.key());
+        const value = this.scValToString(entry.val());
+        if (key) result[key] = value;
+      }
     } catch {
-      return {};
+      // ignore malformed entries
+    }
+    return result;
+  }
+
+  /**
+   * Extract a string representation from any ScVal type.
+   */
+  private scValToString(val: StellarSdk.xdr.ScVal): string {
+    try {
+      switch (val.switch().name) {
+        case "scvSymbol":
+          return val.sym().toString();
+        case "scvString":
+          return val.str().toString();
+        case "scvAddress":
+          return StellarSdk.Address.fromScAddress(val.address()).toString();
+        case "scvI128":
+        case "scvU128": {
+          const parts = (val as any).i128?.() ?? (val as any).u128?.();
+          if (parts) {
+            const hi = BigInt(parts.hi().toString());
+            const lo = BigInt(parts.lo().toString());
+            return ((hi << 64n) | lo).toString();
+          }
+          return "0";
+        }
+        case "scvI64":
+          return val.i64().toString();
+        case "scvU64":
+          return val.u64().toString();
+        case "scvU32":
+          return val.u32().toString();
+        case "scvI32":
+          return val.i32().toString();
+        case "scvBool":
+          return val.b().toString();
+        default:
+          return "";
+      }
+    } catch {
+      return "";
     }
   }
 

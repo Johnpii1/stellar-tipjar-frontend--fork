@@ -162,22 +162,65 @@ export class BackupScheduler {
     fileName: string,
     content: string
   ): Promise<void> {
-    // Requires @aws-sdk/client-s3 — stub for now
     const { s3 } = this.config;
     if (!s3) return;
     const key = `${s3.prefix ?? "backups"}/${fileName}`;
-    console.log(`[S3] Would upload to s3://${s3.bucket}/${key} (${content.length} bytes)`);
-    // const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
-    // const client = new S3Client({ region: s3.region });
-    // await client.send(new PutObjectCommand({ Bucket: s3.bucket, Key: key, Body: content }));
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({ region: s3.region });
+    await client.send(
+      new PutObjectCommand({
+        Bucket: s3.bucket,
+        Key: key,
+        Body: content,
+        ContentType: "application/json",
+        ServerSideEncryption: "AES256",
+      })
+    );
+    console.log(`[S3] Uploaded to s3://${s3.bucket}/${key}`);
   }
 
   private async uploadToIPFS(content: string): Promise<string> {
     const { ipfs } = this.config;
     if (!ipfs) return "";
-    // Stub — real impl would POST to Kubo/Pinata API
-    console.log(`[IPFS] Would upload ${content.length} bytes to ${ipfs.apiUrl}`);
-    return "Qm_stub_cid";
+
+    // Compatible with Kubo RPC API (/api/v0/add) and Pinata (/pinning/pinJSONToIPFS)
+    const isPinata = ipfs.apiUrl.includes("pinata");
+
+    if (isPinata) {
+      const response = await fetch(`${ipfs.apiUrl}/pinning/pinJSONToIPFS`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.PINATA_JWT ?? ""}`,
+        },
+        body: JSON.stringify({
+          pinataContent: JSON.parse(content),
+          pinataMetadata: { name: `tipjar-backup-${Date.now()}` },
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Pinata upload failed: ${response.status} ${response.statusText}`);
+      }
+      const data = (await response.json()) as { IpfsHash: string };
+      console.log(`[IPFS/Pinata] CID: ${data.IpfsHash}`);
+      return data.IpfsHash;
+    }
+
+    // Kubo RPC: multipart form POST to /api/v0/add
+    const blob = new Blob([content], { type: "application/json" });
+    const form = new FormData();
+    form.append("file", blob, "backup.json");
+
+    const response = await fetch(`${ipfs.apiUrl}/api/v0/add?pin=true`, {
+      method: "POST",
+      body: form,
+    });
+    if (!response.ok) {
+      throw new Error(`IPFS upload failed: ${response.status} ${response.statusText}`);
+    }
+    const data = (await response.json()) as { Hash: string };
+    console.log(`[IPFS/Kubo] CID: ${data.Hash}`);
+    return data.Hash;
   }
 
   private pruneOldBackups(): void {

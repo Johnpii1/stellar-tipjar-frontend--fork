@@ -167,7 +167,136 @@ describe("StateImporter", () => {
   });
 });
 
-// ── BackupScheduler ───────────────────────────────────────────────────────────
+// ── Encryption round-trip ─────────────────────────────────────────────────────
+
+describe("Encryption round-trip", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tipjar-enc-test-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("encrypted backup can be decrypted and verified by StateImporter", async () => {
+    const key = "super-secret-key-123";
+
+    const scheduler = new BackupScheduler({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      outputDir: tmpDir,
+      intervalMs: 999999,
+      encryptionKey: key,
+    });
+
+    vi.spyOn(scheduler["exporter"], "exportState").mockResolvedValue(makeMockState());
+    const record = await scheduler.runBackup();
+
+    // Importer should decrypt and verify successfully
+    const importer = new StateImporter({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      encryptionKey: key,
+    });
+
+    const loaded = await importer.loadBackup(record.filePath);
+    const { valid, errors } = importer.verifyBackup(loaded);
+    expect(valid).toBe(true);
+    expect(errors).toHaveLength(0);
+    expect(loaded.creators).toHaveLength(1);
+    expect(loaded.tips).toHaveLength(1);
+  });
+
+  it("decryption fails with wrong key", async () => {
+    const scheduler = new BackupScheduler({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      outputDir: tmpDir,
+      intervalMs: 999999,
+      encryptionKey: "correct-key",
+    });
+
+    vi.spyOn(scheduler["exporter"], "exportState").mockResolvedValue(makeMockState());
+    const record = await scheduler.runBackup();
+
+    const importer = new StateImporter({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      encryptionKey: "wrong-key",
+    });
+
+    await expect(importer.loadBackup(record.filePath)).rejects.toThrow();
+  });
+});
+
+// ── IPFS upload ───────────────────────────────────────────────────────────────
+
+describe("BackupScheduler IPFS upload", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tipjar-ipfs-test-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it("calls Kubo /api/v0/add and logs the CID", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ Hash: "QmTestCID123" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduler = new BackupScheduler({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      outputDir: tmpDir,
+      intervalMs: 999999,
+      storageBackend: "ipfs",
+      ipfs: { apiUrl: "http://localhost:5001" },
+    });
+
+    vi.spyOn(scheduler["exporter"], "exportState").mockResolvedValue(makeMockState());
+    await scheduler.runBackup();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v0/add"),
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("calls Pinata /pinning/pinJSONToIPFS when apiUrl contains pinata", async () => {
+    process.env.PINATA_JWT = "test-jwt-token";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ IpfsHash: "QmPinataCID456" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduler = new BackupScheduler({
+      contractId: MOCK_CONTRACT_ID,
+      network: MOCK_NETWORK,
+      outputDir: tmpDir,
+      intervalMs: 999999,
+      storageBackend: "ipfs",
+      ipfs: { apiUrl: "https://api.pinata.cloud" },
+    });
+
+    vi.spyOn(scheduler["exporter"], "exportState").mockResolvedValue(makeMockState());
+    await scheduler.runBackup();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("pinJSONToIPFS"),
+      expect.objectContaining({ method: "POST" })
+    );
+    delete process.env.PINATA_JWT;
+  });
+});
 
 describe("BackupScheduler", () => {
   let tmpDir: string;
