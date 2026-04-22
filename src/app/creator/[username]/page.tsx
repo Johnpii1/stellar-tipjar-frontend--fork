@@ -19,6 +19,7 @@ import { generateTagCloud } from "@/utils/categories";
 import { PortfolioSection } from "@/components/portfolio/PortfolioSection";
 import { ProfileCard } from "@/components/ProfileCard";
 import { CreatorShare } from "@/components/CreatorShare";
+import { useTipNotifications } from "@/hooks/useTipNotifications";
 
 
 interface CreatorPageProps {
@@ -49,6 +50,14 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
   }
 
   const profile = await getCreatorProfile(parsedUsername.data);
+
+  return (
+    <CreatorPageClient username={parsedUsername.data} profile={profile} />
+  );
+}
+
+function CreatorPageClient({ username, profile }: { username: string; profile: any }) {
+  useTipNotifications(username);
 
   return (
     <section className="space-y-8">
