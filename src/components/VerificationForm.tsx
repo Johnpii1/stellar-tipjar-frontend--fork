@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '../Button';
 import { generateAvatarUrl } from '@/utils/imageUtils';
 import { requestVerification } from '@/services/api';
@@ -9,6 +9,8 @@ import { useCreatorProfile } from '@/hooks/queries/useCreatorProfile';
 export function VerificationForm() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { data: profile } = useCreatorProfile();
 
@@ -71,6 +73,20 @@ export function VerificationForm() {
           className="w-full rounded-xl border border-ink/20 bg-surface px-4 py-3 shadow-sm focus:border-wave focus:outline-none focus:ring-2 focus:ring-wave/20"
           placeholder="https://twitter.com/yourhandle&#10;https://linktr.ee/yourprofile"
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-ink/80">
+          Supporting Document (optional)
+        </label>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,.pdf"
+          onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
+          className="w-full rounded-xl border border-ink/20 bg-surface px-4 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-wave/10 file:px-3 file:py-1 file:text-sm file:font-medium file:text-wave"
+        />
+        {docFile && <p className="mt-1 text-xs text-ink/50">{docFile.name}</p>}
       </div>
 
       <Button type="submit" className="w-full" disabled={status === 'submitting'}>
