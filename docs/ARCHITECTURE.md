@@ -1,97 +1,295 @@
 # Architecture Overview
 
-## Purpose
-
-`stellar-tipjar-frontend` is a Next.js App Router application for browsing creators, connecting a Freighter wallet, and supporting a tip flow backed by API endpoints and Stellar transactions.
-
-## Tech Stack
-
-- Next.js (App Router)
-- React + TypeScript
-- Tailwind CSS
-- Stellar SDK (`@stellar/stellar-sdk`)
-- Freighter API (`@stellar/freighter-api`)
-
-## High-Level Architecture
-
-```mermaid
-flowchart TD
-  U[User] --> UI[Next.js UI: app + components]
-  UI --> H[Hooks: useWallet/useRateLimit/useThrottle]
-  H --> C[Wallet Context]
-  H --> S[Service Layer]
-  C --> WS[walletService + Stellar utils]
-  S --> API[Backend API]
-  WS --> F[Freighter Extension]
-  WS --> HZ[Stellar Horizon]
-```
-
 ## Project Structure
 
-```text
+Stellar Tip Jar Frontend is built with Next.js 14+ using the App Router, TypeScript, and TailwindCSS.
+
+```
 src/
-  app/          Route segments and page entry points
-  components/   Reusable presentational and interactive UI
-  contexts/     Global React context providers (wallet)
-  hooks/        Reusable stateful client logic
-  services/     API and wallet integration layer
-  styles/       Global CSS and visual primitives
-  utils/        Stateless helpers and utility classes
+├── app/                 # Next.js App Router
+│   ├── [locale]/       # Internationalization routes
+│   ├── creator/        # Creator profile routes
+│   ├── dashboard/      # User dashboard
+│   ├── explore/        # Creator discovery
+│   ├── layout.tsx      # Root layout
+│   └── ...
+├── components/         # Reusable React components
+│   ├── Button.tsx
+│   ├── Navbar.tsx
+│   ├── ShareButtons.tsx
+│   └── ...
+├── hooks/             # Custom React hooks
+│   ├── useWallet.ts
+│   ├── usePWA.ts
+│   └── ...
+├── lib/               # Core utilities and libraries
+│   ├── analytics/     # Analytics and performance tracking
+│   ├── pwa/          # PWA utilities
+│   ├── stellar/      # Stellar blockchain integration
+│   └── ...
+├── services/         # API service layer
+│   ├── api.ts
+│   ├── walletService.ts
+│   └── ...
+├── contexts/         # React contexts
+│   ├── WalletContext.tsx
+│   ├── ThemeContext.tsx
+│   └── ...
+├── types/            # TypeScript type definitions
+├── utils/            # Helper functions
+└── styles/           # Global styles
 ```
 
-## Rendering Model
+## Technology Stack
 
-- Server Components:
-  - Route pages like `src/app/creator/[username]/page.tsx` fetch initial data.
-- Client Components:
-  - Wallet and interaction components (`WalletConnector`, wallet context/hook).
-- Shared layout:
-  - `src/app/layout.tsx` wraps all pages with `WalletProvider` and `Navbar`.
+### Frontend Framework
+- **Next.js 14+**: React framework with App Router
+- **React 19+**: UI library
+- **TypeScript**: Type safety
+
+### Styling
+- **TailwindCSS 4+**: Utility-first CSS framework
+- **Framer Motion**: Animation library
+
+### State Management
+- **React Context**: Global state (theme, wallet, currency)
+- **TanStack Query**: Server state management
+- **React Hook Form**: Form state management
+
+### Blockchain
+- **Stellar SDK**: Stellar blockchain integration
+- **Freighter API**: Wallet connection
+
+### Testing
+- **Vitest**: Unit testing
+- **Playwright**: E2E testing
+- **React Testing Library**: Component testing
+
+### Build & Deployment
+- **Next.js**: Build and deployment
+- **Vercel**: Recommended hosting
+
+## Key Features
+
+### 1. Performance Monitoring (Web Vitals)
+- Tracks Core Web Vitals (LCP, FID, CLS, FCP, TTFB)
+- Sends metrics to analytics endpoint
+- Performance budgets for development
+
+**Files:**
+- `src/lib/webVitals.ts`
+- `src/lib/analytics/performance.ts`
+- `src/components/PerformanceMonitor.tsx`
+
+### 2. Social Sharing
+- Share buttons for Twitter, Facebook, LinkedIn
+- Copy link to clipboard
+- Native share API for mobile
+- Open Graph and Twitter Card meta tags
+
+**Files:**
+- `src/components/ShareButtons.tsx`
+- `src/utils/shareUtils.ts`
+- `src/app/layout.tsx` (metadata)
+
+### 3. Progressive Web App (PWA)
+- Service Worker for offline support
+- Push notifications
+- Background sync
+- Install prompt
+- App manifest
+
+**Files:**
+- `public/sw.js`
+- `public/manifest.json`
+- `src/lib/pwa/manager.ts`
+- `src/hooks/usePWA.ts`
+
+### 4. Internationalization (i18n)
+- Multi-language support
+- Dynamic locale routing
+- Translation files in `messages/` and `src/i18n/locales/`
+
+**Files:**
+- `src/i18n/routing.ts`
+- `src/i18n/request.ts`
+- `messages/` directory
+
+### 5. Wallet Integration
+- Freighter wallet connection
+- Stellar transaction handling
+- Wallet context for global state
+
+**Files:**
+- `src/contexts/WalletContext.tsx`
+- `src/lib/stellar/freighter.ts`
+- `src/hooks/useWallet.ts`
 
 ## Data Flow
 
-1. User triggers UI interaction.
-2. Component invokes hook or service function.
-3. Service layer (`src/services/api.ts` or `src/services/walletService.ts`) performs network call.
-4. Result updates component/local/context state.
-5. React re-renders affected UI.
-
-## API Request Control Flow
-
-`src/services/api.ts` centralizes:
-
-- path-level throttling (`DEFAULT_THROTTLE_MS`)
-- global client-side rate limiting (`10 requests / 60s`)
-- queueing non-critical requests
-- exponential backoff retries for queued requests
-- status subscription for UI feedback (`subscribeToApiRateLimit`)
-
-```mermaid
-flowchart LR
-  Req[request()] --> Check{Rate limiter allows?}
-  Check -- yes --> Throttle[Apply path throttle] --> Fetch[fetch()]
-  Check -- no + critical --> Err[ApiRateLimitError]
-  Check -- no + non-critical --> Queue[RequestQueue.enqueue]
-  Queue --> Retry[Exponential backoff + wait retryAfter]
-  Retry --> Fetch
+### API Communication
+```
+Component
+  ↓
+Hook (useQuery/useMutation)
+  ↓
+TanStack Query
+  ↓
+Service Layer (src/services/api.ts)
+  ↓
+Fetch API
+  ↓
+Backend API
 ```
 
-## Wallet Flow
+### State Management
+```
+Global State (Context)
+  ├── Theme (ThemeContext)
+  ├── Wallet (WalletContext)
+  ├── Currency (CurrencyContext)
+  └── Toast (ToastContext)
 
-1. `WalletProvider` bootstraps connection and watches wallet changes.
-2. `walletService.connect()` validates Freighter, permission, and address retrieval.
-3. Balance is fetched via Horizon (`getBalance` in `src/utils/stellar.ts`).
-4. `useWallet()` exposes context plus derived `shortAddress`.
+Server State (TanStack Query)
+  ├── Creators
+  ├── Tips
+  └── User Data
 
-## Architecture Decisions
+Local State (useState)
+  └── Component-specific state
+```
 
-- **Service layer boundary** keeps IO and error handling out of UI components.
-- **Context for wallet state** avoids prop drilling and provides app-wide wallet access.
-- **Typed responses/interfaces** improve confidence in API integration.
-- **Utility classes for rate limiting** isolate policy logic from route components.
+## Component Hierarchy
 
-## Scalability Notes
+```
+RootLayout
+├── PerformanceMonitor
+├── ThemeProvider
+├── I18nProvider
+├── CurrencyProvider
+├── WalletProvider
+├── ReactQueryProvider
+├── WebSocketProvider
+├── ToastProvider
+│   ├── Navbar
+│   ├── main (PageTransition)
+│   │   └── Route Components
+│   ├── Footer
+│   ├── InstallPrompt
+│   ├── UpdatePrompt
+│   ├── PWAInitializer
+│   └── ToastContainer
+```
 
-- Add more service modules as backend surface expands (tips, creators, transactions).
-- Introduce dedicated state library only when context/local state becomes insufficient.
-- Add test tooling before expanding business-critical flows.
+## API Integration
+
+### Service Layer Pattern
+```typescript
+// src/services/api.ts
+export async function fetchCreators() {
+  const response = await fetch(`${API_URL}/creators`);
+  return response.json();
+}
+
+// In component
+const { data } = useQuery({
+  queryKey: ['creators'],
+  queryFn: fetchCreators,
+});
+```
+
+### Error Handling
+- Global error boundary
+- Toast notifications for user feedback
+- Retry logic with exponential backoff
+- Offline queue for failed requests
+
+## Performance Optimization
+
+### Code Splitting
+- Route-based code splitting (Next.js automatic)
+- Dynamic imports for heavy components
+- Lazy loading for images
+
+### Caching Strategy
+- Service Worker caching (network-first for API, cache-first for assets)
+- Browser caching headers
+- TanStack Query caching
+
+### Image Optimization
+- Next.js Image component
+- Responsive images
+- WebP format support
+
+## Security
+
+### Best Practices
+- Content Security Policy (CSP)
+- HTTPS only
+- Secure headers
+- Input validation with Zod
+- XSS protection
+
+### Wallet Security
+- No private key storage
+- Freighter wallet integration
+- Transaction signing only
+
+## Testing Strategy
+
+### Unit Tests
+- Component logic
+- Utility functions
+- Hooks
+
+### Integration Tests
+- API communication
+- Context providers
+- Form submissions
+
+### E2E Tests
+- User workflows
+- Critical paths
+- Cross-browser compatibility
+
+## Deployment
+
+### Environment Variables
+```
+NEXT_PUBLIC_API_URL=https://api.example.com
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_SITE_URL=https://example.com
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
+```
+
+### Build Process
+```bash
+npm run build
+npm run start
+```
+
+### CI/CD
+- GitHub Actions workflows
+- Automated testing
+- Deployment on merge to main
+
+## Monitoring & Analytics
+
+### Web Vitals
+- Automatic collection via `web-vitals` library
+- Sent to `/api/analytics` endpoint
+- Performance budgets in development
+
+### Error Tracking
+- Global error boundary
+- Error logging service
+- User feedback collection
+
+## Future Improvements
+
+- [ ] Storybook for component documentation
+- [ ] GraphQL integration
+- [ ] Advanced caching strategies
+- [ ] Real-time notifications
+- [ ] Analytics dashboard
+- [ ] A/B testing framework
