@@ -5,11 +5,10 @@ import { ReportModal } from "@/components/ReportModal";
 
 interface ReportButtonProps {
   targetUser: string;
-  /** Render as icon-only button (for compact layouts) */
-  compact?: boolean;
+  className?: string;
 }
 
-export function ReportButton({ targetUser, compact = false }: ReportButtonProps) {
+export function ReportButton({ targetUser, className = "" }: ReportButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,11 +17,9 @@ export function ReportButton({ targetUser, compact = false }: ReportButtonProps)
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Report @${targetUser}`}
-        className={`rounded-lg border border-ink/10 text-xs text-ink/40 transition-colors hover:border-error/40 hover:text-error ${
-          compact ? "px-2 py-1" : "px-3 py-1.5"
-        }`}
+        className={`inline-flex items-center gap-1.5 rounded-xl border border-ink/15 px-3 py-2 text-sm font-medium text-ink/50 transition-colors hover:border-error/40 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error/40 ${className}`}
       >
-        {compact ? "⚑" : "Report"}
+        <span aria-hidden="true">⚑</span> Report
       </button>
 
       {open && <ReportModal targetUser={targetUser} onClose={() => setOpen(false)} />}

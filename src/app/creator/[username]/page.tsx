@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Button } from "@/components/Button";
 import { ReportButton } from "@/components/ReportButton";
+import { ReportButton } from "@/components/ReportButton";
 import { TipForm } from "@/components/forms/TipForm";
 import { CreatorStatsDashboard } from "@/components/stats/CreatorStatsDashboard";
 import { TipComments } from "@/components/TipComments";
@@ -122,6 +123,7 @@ function CreatorPageClient({ username, profile }: { username: string; profile: a
         <Link href="/explore">
           <Button variant="ghost">Back to Explore</Button>
         </Link>
+        <ReportButton targetUser={profile.username} />
       </div>
 
       <div className="rounded-2xl border border-ink/10 bg-white/70 p-5 sm:p-6">
